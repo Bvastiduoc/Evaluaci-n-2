@@ -1,49 +1,33 @@
 import requests
-import json
 
 def solicitar_ciudades():
-    # Versión sin input
-    origen = "santiago"
-    destino = "ovalle"
-    return origen, destino
+    # Jenkins no permite input(), así que usamos valores fijos
+    return "santiago", "ovalle"
 
-def obtener_coordenadas(ciudad):
-    url = f"https://nominatim.openstreetmap.org/search?q={ciudad}&format=json"
-    respuesta = requests.get(url)
-    datos = respuesta.json()
-    if datos:
-        lat = datos[0]['lat']
-        lon = datos[0]['lon']
-        return lat, lon
-    else:
-        raise ValueError(f"No se pudo obtener coordenadas para {ciudad}")
+def obtener_datos(ciudad_origen, ciudad_destino):
+    # Reemplaza esto con tu propia API key válida de Graphhopper
+    api_key = "53920fda-c85e-4ed1-a438-2c08aaf90065"
 
-def consultar_ruta(origen_lat, origen_lon, destino_lat, destino_lon):
-    api_key = "your_graphhopper_api_key"  # Reemplaza con tu API Key si es necesario
-    url = f"https://graphhopper.com/api/1/route?point={origen_lat},{origen_lon}&point={destino_lat},{destino_lon}&vehicle=car&locale=es&key={api_key}"
-    respuesta = requests.get(url)
-    datos = respuesta.json()
-    if 'paths' in datos and datos['paths']:
-        distancia = datos['paths'][0]['distance'] / 1000  # en km
-        tiempo = datos['paths'][0]['time'] / 60000        # en minutos
-        return distancia, tiempo
+    url = f"https://graphhopper.com/api/1/route?point={ciudad_origen},Chile&point={ciudad_destino},Chile&vehicle=car&locale=es&key={api_key}"
+
+    response = requests.get(url)
+    if response.status_code == 200:
+        datos = response.json()
+        distancia_metros = datos["paths"][0]["distance"]
+        tiempo_ms = datos["paths"][0]["time"]
+        return distancia_metros, tiempo_ms
     else:
-        raise ValueError("No se pudo calcular la ruta.")
+        print(f"Error al consultar la API: {response.status_code}")
+        return None, None
 
 def main():
     origen, destino = solicitar_ciudades()
     print(f"Calculando ruta desde {origen} hasta {destino}...")
-
-    try:
-        origen_lat, origen_lon = obtener_coordenadas(origen)
-        destino_lat, destino_lon = obtener_coordenadas(destino)
-        distancia, tiempo = consultar_ruta(origen_lat, origen_lon, destino_lat, destino_lon)
-
-        print(f"Distancia aproximada: {distancia:.2f} km")
-        print(f"Tiempo estimado: {tiempo:.2f} minutos")
-    except Exception as e:
-        print(f"Ocurrió un error: {e}")
+    distancia, tiempo = obtener_datos(origen, destino)
+    
+    if distancia and tiempo:
+        print(f"Distancia aproximada: {distancia / 1000:.2f} km")
+        print(f"Tiempo estimado: {tiempo / 60000:.2f} minutos")
 
 if __name__ == "__main__":
     main()
-
